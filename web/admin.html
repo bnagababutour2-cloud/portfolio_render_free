@@ -1,0 +1,179 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin / Supervisor Portfolio & Approval</title>
+<style>
+body{font-family:Arial;margin:0;background:#f4f6f8;color:#18202a}header{background:#6a1b9a;color:#fff;padding:16px}.wrap{max-width:1400px;margin:auto;padding:12px}.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px #0001}.login{max-width:420px;margin:50px auto}input,textarea,select{padding:10px;border:1px solid #ccd3db;border-radius:8px;box-sizing:border-box;font-size:15px;margin:6px 0 10px;width:100%}.btn{padding:9px 12px;border:0;border-radius:8px;color:#fff;cursor:pointer}.blue{background:#0d47a1}.green{background:#16803c}.red{background:#c62828}.gray{background:#6b7280}.orange{background:#ef6c00}.error{color:#c62828}.ok{color:#087f23}.small{font-size:12px;color:#68727d}.table{overflow:auto}table{border-collapse:collapse;width:100%;min-width:1100px}th,td{padding:9px;border-bottom:1px solid #e4e7eb;text-align:left;white-space:nowrap}th{background:#eef2f7}.pending{color:#ef6c00;font-weight:bold}.approved{color:#087f23;font-weight:bold}.rejected{color:#c62828;font-weight:bold}.filters{display:grid;grid-template-columns:1fr 1fr auto auto;gap:10px;align-items:end}.filters>div{min-width:180px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat b{display:block;font-size:20px;margin-top:4px}.loss{color:#c62828}.profit{color:#087f23}.section-title{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.section-title h3{margin:0}.muted{color:#68727d}.request-bell{background:#c62828;color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:bold;cursor:pointer;display:inline-flex;align-items:center;gap:7px}.request-bell .count{background:#fff;color:#c62828;border-radius:999px;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}.request-bell.zero{background:#6b7280}.request-anchor{scroll-margin-top:20px}.add-script{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}.add-script label{font-weight:bold;font-size:13px;white-space:nowrap}.add-script input{width:auto;min-width:105px;padding:7px 9px;margin:0;font-size:13px}.add-script .qty-input{width:64px;min-width:64px}.add-script .price-input{width:90px;min-width:90px}.add-script .btn{padding:7px 11px;font-size:13px;white-space:nowrap}.add-script-msg{font-size:12px;color:#087f23;margin-left:4px}@media(max-width:900px){.add-script{flex-wrap:wrap}.add-script input{flex:1}}@media(max-width:700px){.filters{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<header><h2>Admin / Supervisor Portfolio & Approval Panel</h2><div id="status">Admin login required</div></header>
+
+<div id="loginPage" class="wrap"><div class="card login"><h3>Admin / Supervisor Login</h3><div class="small">Admin sees all clients. Supervisor logins see only their assigned client groups and can approve/reject requests for those clients.</div><label>Username</label><input id="user" value="admin" autocomplete="username"><label>Password</label><input id="pass" type="password" autocomplete="current-password"><button class="btn blue" onclick="login()">LOGIN</button><div id="err" class="error"></div></div></div>
+
+<div id="app" class="wrap" style="display:none">
+  <div class="card">
+    <button class="btn blue" onclick="loadPortfolio()">Refresh All Clients</button>
+    <button class="btn orange" onclick="loadPending()">Pending Requests</button>
+    <button class="btn gray" onclick="loadAllRequests()">All Requests</button>
+    <button id="topRequestBell" class="request-bell zero" onclick="goToRequests()" title="Open pending requests">🔔 Requests <span id="pendingCount" class="count">0</span></button>
+    <button class="btn gray" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="card" style="padding:9px 12px">
+    <div class="add-script">
+      <span style="font-weight:bold;font-size:13px;white-space:nowrap">Add New Scrip:</span>
+      <label for="addClient">Client</label><input id="addClient" placeholder="Client ID" autocomplete="off">
+      <label for="addSymbol">Symbol</label><input id="addSymbol" placeholder="SYMBOL" autocomplete="off">
+      <label for="addQty">Qty</label><input id="addQty" class="qty-input" type="number" min="0.01" step="0.01" placeholder="Qty">
+      <label for="addBuyPrice">Buy Price</label><input id="addBuyPrice" class="price-input" type="number" min="0.01" step="0.01" placeholder="Price">
+      <button class="btn green" onclick="adminAddScript()">ADD</button>
+      <span id="addScriptMsg" class="add-script-msg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><h3>All Clients Portfolio</h3><span class="small">Admin-only view • read-only market/portfolio data</span></div>
+    <div class="filters">
+      <div><label>Client</label><select id="clientFilter"><option value="">ALL CLIENTS</option></select></div>
+      <div><label>Symbol</label><select id="symbolFilter"><option value="">ALL SYMBOLS</option></select></div>
+      <button class="btn blue" onclick="loadPortfolio()">VIEW</button>
+      <button class="btn gray" onclick="clearFilters()">CLEAR</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="card stat">Total MTM <b id="mtm">0</b></div>
+    <div class="card stat">Clients <b id="clientCount">0</b></div>
+    <div class="card stat">Portfolio Rows <b id="rowCount">0</b></div>
+  </div>
+
+  <div class="card"><div class="table"><table><thead><tr><th>Client</th><th>Symbol</th><th>MTM</th><th>LTP</th><th>Qty</th><th>Buy Price</th><th>Change</th><th>Lot</th><th>Action</th></tr></thead><tbody id="portfolioBody"></tbody></table></div></div>
+
+  <div id="changeRequests" class="card request-anchor"><div class="section-title"><h3>Change Requests</h3><span class="small">NEW LOT / BUY PRICE / DELETE RECORD require Admin approval</span></div>
+    <div class="table"><table><thead><tr><th>ID</th><th>Date/Time</th><th>Client</th><th>Symbol</th><th>Lot</th><th>Field</th><th>Old</th><th>Requested</th><th>Qty</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead><tbody id="body"></tbody></table></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let currentIdentity={username:'',label:'',prefixes:[]};
+function routeUser(){const p=location.pathname;return p==='/1312'?'1312':p==='/1313'?'1313':p==='/1304'?'1304':'admin'}
+function initLogin(){const u=routeUser();$('user').value=u==='admin'?'admin':u; if(u!=='admin') $('pass').value=u}
+
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+function fmt(v){if(v==null||v==='')return '';const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-IN',{maximumFractionDigits:2}):esc(v)}
+function pick(r,...keys){
+  if(!r||typeof r!=='object')return '';
+  for(const k of keys){
+    if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')return r[k];
+  }
+  const normKey=s=>String(s).trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
+  const map={};
+  Object.keys(r).forEach(k=>{map[normKey(k)]=r[k]});
+  for(const k of keys){
+    const v=map[normKey(k)];
+    if(v!==undefined&&v!==null&&v!=='')return v;
+  }
+  return '';
+}
+async function api(p,o={}){const r=await fetch(p,{credentials:'same-origin',...o});if(!r.ok){let t=await r.text();try{t=JSON.parse(t).detail||t}catch{}throw new Error(t||('HTTP '+r.status))}return r.json()}
+async function login(){try{const d=await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('user').value.trim(),password:$('pass').value})});showApp(d.username,d.label,d.prefixes)}catch(e){$('err').textContent=e.message}}
+async function check(){try{const d=await api('/api/admin/me');showApp(d.username,d.label,d.prefixes)}catch{}}
+function showApp(username,label,prefixes){
+  currentIdentity={username,label,prefixes:Array.isArray(prefixes)?prefixes:[]};
+  $('loginPage').style.display='none';
+  $('app').style.display='block';
+  const scope = Array.isArray(prefixes) && prefixes.length ? ' • Clients starting '+prefixes.join(', ') : ' • All clients';
+  $('status').textContent=(label||'Admin')+' • '+username+scope;
+  loadPortfolio();loadPending()
+}
+async function logout(){try{await api('/api/admin/logout',{method:'POST'})}catch{}location.reload()}
+function clearFilters(){$('clientFilter').value='';$('symbolFilter').value='';loadPortfolio()}
+function goToRequests(){showRequests('PENDING').then(()=>{$('changeRequests').scrollIntoView({behavior:'smooth',block:'start'});})}
+async function updateRequestBell(){try{const d=await api('/api/admin/requests?status=PENDING');const n=(d.requests||[]).length;$('pendingCount').textContent=n;$('topRequestBell').classList.toggle('zero',n===0);$('topRequestBell').title=n?`${n} pending request${n===1?'':'s'}`:'No pending requests'}catch{}}
+async function loadPortfolio(){try{const qs=new URLSearchParams();if($('clientFilter').value)qs.set('client_code',$('clientFilter').value);if($('symbolFilter').value)qs.set('symbol',$('symbolFilter').value);const d=await api('/api/admin/portfolio'+(qs.toString()?'?'+qs.toString():''));
+  $('mtm').textContent=fmt(d.mtm_total);$('clientCount').textContent=d.client_count;$('rowCount').textContent=d.count;
+  const cf=$('clientFilter'),oldC=cf.value;cf.innerHTML='<option value="">ALL CLIENTS</option>'+((d.clients||[]).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(''));if([...cf.options].some(o=>o.value===oldC))cf.value=oldC;
+  const sf=$('symbolFilter'),oldS=sf.value;sf.innerHTML='<option value="">ALL SYMBOLS</option>'+((d.symbols||[]).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join(''));if([...sf.options].some(o=>o.value===oldS))sf.value=oldS;
+  // Defensive client-side cleanup: ignore completely blank Excel rows even if an
+  // older running server still sends them with only the synthetic row number.
+  const rawRows=d.rows||[];
+  let rows=rawRows.filter(r=>{
+    const client=pick(r,'_client_code','CLIENT CODE','CLIENTCODE','CLIENT');
+    const symbol=pick(r,'_symbol','SYMBOL','SCRIP','STOCK');
+    return String(client??'').trim()!=='' && String(symbol??'').trim()!=='';
+  });
+  // Defensive client-side ordering: MTM highest to lowest, with blank MTM at the bottom.
+  rows.sort((a,b)=>{
+    const am=Number(pick(a,'_mtm','MTM'));
+    const bm=Number(pick(b,'_mtm','MTM'));
+    const av=Number.isFinite(am), bv=Number.isFinite(bm);
+    if(av!==bv) return av ? -1 : 1;
+    if(!av) return 0;
+    return bm-am;
+  });
+  $('portfolioBody').innerHTML=rows.map(r=>{const client=pick(r,'_client_code','CLIENT CODE','CLIENTCODE','CLIENT');const symbol=pick(r,'_symbol','SYMBOL','SCRIP','STOCK');const mtm=pick(r,'_mtm','MTM');const ltp=pick(r,'_ltp','LTP');const qty=pick(r,'_quantity','BUY QUANTITY','QUANTITY','QTY');const buy=pick(r,'_buy_price','BUY PRICE','BUYPRICE');const change=pick(r,'_change','CHANGE');const lot=pick(r,'_excel_row','LOT','Lot');return `<tr id="portfolio-row-${Number(lot)}"><td>${esc(client)}</td><td>${esc(symbol)}</td><td class="${(Number(mtm)||0)>=0?'profit':'loss'}">${fmt(mtm)}</td><td>${fmt(ltp)}</td><td class="qty-cell">${fmt(qty)}</td><td class="buy-cell">${fmt(buy)}</td><td>${fmt(change)}</td><td>${esc(lot)}</td><td><button class="btn red" onclick="adminDeleteRecord('${esc(client)}','${esc(symbol)}',${Number(lot)})">DELETE</button> <button class="btn blue" onclick="startModifyRecord('${esc(client)}','${esc(symbol)}',${Number(lot)},${Number(qty)||0},${Number(buy)||0})">MODIFY</button></td></tr>`}).join('')||'<tr><td colspan="9">No portfolio records.</td></tr>';
+  // Keep the displayed Lot column as the last column, as requested.
+  $('status').textContent='LIVE • '+(currentIdentity.label||'Admin')+' • '+currentIdentity.username+' • '+(currentIdentity.prefixes.length?'Clients starting '+currentIdentity.prefixes.join(', '):'All clients')+' • '+new Date().toLocaleTimeString();
+}catch(e){$('status').textContent='ERROR • '+e.message}}
+function startModifyRecord(client,symbol,lot,qty,buy){
+  const row=$('portfolio-row-'+lot);
+  if(!row)return;
+  row.querySelector('.qty-cell').innerHTML=`<input class="modify-input" id="modify-qty-${lot}" type="number" min="0.01" step="0.01" value="${qty}">`;
+  row.querySelector('.buy-cell').innerHTML=`<input class="modify-input" id="modify-buy-${lot}" type="number" min="0.01" step="0.01" value="${buy}">`;
+  row.cells[8].innerHTML=`<button class="btn green" onclick="saveModifyRecord('${esc(client)}','${esc(symbol)}',${lot})">SAVE</button> <button class="btn gray" onclick="loadPortfolio()">CANCEL</button>`;
+}
+async function saveModifyRecord(client,symbol,lot){
+  const qty=Number($('modify-qty-'+lot)?.value);
+  const buy=Number($('modify-buy-'+lot)?.value);
+  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(buy)||buy<=0){
+    alert('Enter a valid Quantity and Buy Price.');
+    return;
+  }
+  if(!confirm('MODIFY RECORD\n\nClient: '+client+'\nSymbol: '+symbol+'\nLot: '+lot+'\n\nNew Qty: '+qty+'\nNew Buy Price: '+buy+'\n\nUpdate Excel directly?')) return;
+  try{
+    await api('/api/admin/modify-record',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({client_id:client,symbol:symbol,excel_row:lot,quantity:qty,buy_price:buy})
+    });
+    alert('Record modified and Excel updated.');
+    await loadPortfolio();
+  }catch(e){alert(e.message)}
+}
+async function adminDeleteRecord(client,symbol,lot){
+  if(!confirm('DIRECT DELETE\\n\\nClient: '+client+'\\nSymbol: '+symbol+'\\nLot: '+lot+'\\n\\nThis will delete the portfolio record immediately. Continue?')) return;
+  try{
+    await api('/api/admin/direct-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:client,symbol:symbol,excel_row:lot})});
+    alert('Record deleted directly.');
+    await loadPortfolio();
+  }catch(e){alert(e.message)}
+}
+async function adminAddScript(){
+  const client=$('addClient').value.trim();
+  const symbol=$('addSymbol').value.trim().toUpperCase();
+  const quantity=Number($('addQty').value);
+  const buy_price=Number($('addBuyPrice').value);
+  const msg=$('addScriptMsg');
+  msg.textContent='';
+  if(!client||!symbol||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(buy_price)||buy_price<=0){
+    alert('Enter Client, Symbol, valid Quantity and valid Buy Price.');
+    return;
+  }
+  if(!confirm('ADD NEW SCRIP\n\nClient: '+client+'\nSymbol: '+symbol+'\nQty: '+quantity+'\nBuy Price: '+buy_price+'\n\nAdd directly to Excel and make it visible to the client?')) return;
+  try{
+    await api('/api/admin/add-script',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({client_id:client,symbol:symbol,quantity:quantity,buy_price:buy_price})
+    });
+    msg.textContent='Added to Excel successfully.';
+    $('addClient').value='';$('addSymbol').value='';$('addQty').value='';$('addBuyPrice').value='';
+    await loadPortfolio();
+    setTimeout(()=>{msg.textContent=''},4000);
+  }catch(e){alert(e.message)}
+}
+async function loadPending(){await showRequests('PENDING')}
+async function loadAllRequests(){await showRequests('ALL')}
+async function showRequests(status){try{const d=await api('/api/admin/requests?status='+status);$('body').innerHTML=(d.requests||[]).map(r=>{const actions=r.status==='PENDING'?`<button class="btn green" onclick="review(${r.id},'APPROVE')">APPROVE</button> <button class="btn red" onclick="review(${r.id},'REJECT')">REJECT</button>`:'';const del=r.status!=='PENDING'?` <button class="btn gray" onclick="deleteRequest(${r.id})">DELETE</button>`:'';return `<tr><td>${r.id}</td><td>${esc(r.created_at)}</td><td>${esc(r.client_id)}</td><td>${esc(r.symbol)}</td><td>${r.excel_row??''}</td><td>${esc(r.field)}</td><td>${fmt(r.old_value)}</td><td>${fmt(r.requested_value)}</td><td>${fmt(r.requested_quantity)}</td><td>${esc(r.reason||'')}</td><td class="${String(r.status||'').toLowerCase()}">${esc(r.status)}</td><td>${actions}${del}</td></tr>`}).join('')||'<tr><td colspan="12">No requests.</td></tr>';await updateRequestBell()}catch(e){$('status').textContent='ERROR • '+e.message}}
+async function deleteRequest(id){if(!confirm('Delete this old request? This removes only the request record.'))return;try{await api('/api/admin/requests/'+id,{method:'DELETE'});loadAllRequests()}catch(e){alert(e.message)}}
+async function review(id,action){let remark=prompt((action==='APPROVE'?'Approval':'Rejection')+' remark (optional):','');if(remark===null)return;try{await api('/api/admin/requests/'+id+'/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,remark})});alert(action==='APPROVE'?'Approved and Excel updated.':'Rejected.');loadPending();loadPortfolio()}catch(e){alert(e.message)}}
+initLogin();check();setInterval(()=>{if($('app').style.display!=='none'){loadPortfolio();loadPending()}},10000);
+</script></body></html>
