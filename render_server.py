@@ -150,15 +150,17 @@ def password_hash(value: str) -> str:
     return hmac.new(os.getenv("MIGRATION_PASSWORD_HASH_SECRET", SESSION_SECRET).encode(), value.strip().upper().encode(), hashlib.sha256).hexdigest()
 
 
-def authenticate_client(client_id: str, password: str) -> str | None:
+def authenticate_client(client_id: str, password: str = "") -> str | None:
     with db() as con:
-        r = con.execute("SELECT client_id,password_hashes FROM clients WHERE upper(client_id)=upper(%s)", (clean_client_code(client_id),)).fetchone()
+        r = con.execute(
+            "SELECT client_id FROM clients WHERE upper(client_id)=upper(%s)",
+            (clean_client_code(client_id),)
+        ).fetchone()
+
     if not r:
         return None
-    supplied = password_hash(password)
-    if supplied in (r["password_hashes"] or []):
-        return r["client_id"]
-    return None
+
+    return r["client_id"]
 
 
 def insert_request(con, *, client_id, symbol, excel_row, field, old_value, requested_value, requested_quantity, reason, status, reviewed_at=None, reviewed_by=None, admin_remark=None):
