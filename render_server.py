@@ -465,6 +465,18 @@ def home(): return FileResponse(WEB_DIR / "index.html")
 @app.get("/admin")
 def admin_page(): return FileResponse(WEB_DIR / "admin.html")
 
+@app.get("/1312")
+def supervisor_1312_page():
+    return FileResponse(WEB_DIR / "admin.html")
+
+@app.get("/1313")
+def supervisor_1313_page():
+    return FileResponse(WEB_DIR / "admin.html")
+
+@app.get("/1304")
+def supervisor_1304_page():
+    return FileResponse(WEB_DIR / "admin.html")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT","10000")))
