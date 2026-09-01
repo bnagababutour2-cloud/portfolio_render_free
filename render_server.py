@@ -145,16 +145,17 @@ def row_to_api(r):
     data["_change"] = r["change_value"]
 
     data["_normal_mtf"] = (
-    data.get("NORMAL / MTF")
-    or data.get("NORMAL/MTF")
-    or data.get("NORMAL_MTF")
-)
+        data.get("NORMAL / MTF")
+        or data.get("NORMAL/MTF")
+        or data.get("NORMAL_MTF")
+    )
 
-data["_portfolio_id"] = (
-    data.get("PORTFOLIO ID")
-    or data.get("PORTFOLIO_ID")
-    or data.get("Portfolio ID")
-)
+    data["_portfolio_id"] = (
+        data.get("PORTFOLIO ID")
+        or data.get("PORTFOLIO_ID")
+        or data.get("Portfolio ID")
+    )
+
     return data
 
 
