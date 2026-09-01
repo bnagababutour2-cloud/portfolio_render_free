@@ -215,7 +215,7 @@ async function loadAll(){
       const buttonLabel=adminPending?'DELETE REQUEST PENDING':'DELETE';
       const buttonClass=adminPending?'btn gray':'btn red';
       const buttonDisabled=adminPending?' disabled title="A delete request for this lot is already pending with Admin"':'';
-      return `<tr><td>${esc(r._client_code)}</td><td>${esc(r._symbol)}</td><td>${esc(pick(r,'_normal_mtf','NORMAL / MTF','NORMAL/MTF','NORMAL_MTF'))}</td><td class="${(r._mtm??0)>=0?'profit':'loss'}">${fmt(r._mtm)}</td><td>${fmt(r._ltp)}</td><td>${fmt(r._quantity)}</td><td>${fmt(r._buy_price)}</td><td>${fmt(r._change)}</td><td><button class="${buttonClass}" onclick="openDeleteModal(${r._excel_row},'${esc(r._symbol)}')"${buttonDisabled}>${buttonLabel}</button></td></tr>`;    }).join('');
+      return `<tr><td>${esc(r._client_code)}</td><td>${esc(r._symbol)}</td><td>${esc(pick(r,'_normal_mtf','NORMAL/ MTF','NORMAL/MTF','NORMAL_MTF'))}</td><td class="${(r._mtm??0)>=0?'profit':'loss'}">${fmt(r._mtm)}</td><td>${fmt(r._ltp)}</td><td>${fmt(r._quantity)}</td><td>${fmt(r._buy_price)}</td><td>${fmt(r._change)}</td><td><button class="${buttonClass}" onclick="openDeleteModal(${r._excel_row},'${esc(r._symbol)}')"${buttonDisabled}>${buttonLabel}</button></td></tr>`;    }).join('');
     const s=$('reqLot'),old=s.value;
     s.innerHTML=d.rows.map(r=>`<option value="${r._excel_row}" data-symbol="${esc(r._symbol)}">Lot ${r._excel_row} — ${esc(r._symbol)} — Qty ${fmt(r._quantity)} — Buy ${fmt(r._buy_price)}</option>`).join('');
     if([...s.options].some(o=>o.value===old))s.value=old;
