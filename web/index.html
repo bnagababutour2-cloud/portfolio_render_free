@@ -205,27 +205,117 @@ function showApp(c){liveClientCode=c;$('loginPage').style.display='none';$('appP
 async function logout(){try{await api('/api/logout',{method:'POST'})}catch{}showLogin()}
 async function loadAll(){
   try{
-    const [d,rd]=await Promise.all([api('/api/portfolio'),api('/api/requests')]);
-    requestCache=Array.isArray(rd.requests)?rd.requests:[];
-    $('mtm').textContent=fmt(d.mtm_total);
-    const realised=$('realised');if(realised)realised.textContent=fmt(d.realised_profit_total);
-    $('body').innerHTML=d.rows.map(r=>{
-      const status=requestStatusFor(r._excel_row,r._symbol);
-      const adminPending=status==='PENDING';
-      const buttonLabel=adminPending?'DELETE REQUEST PENDING':'DELETE';
-      const buttonClass=adminPending?'btn gray':'btn red';
-      const buttonDisabled=adminPending?' disabled title="A delete request for this lot is already pending with Admin"':'';
-      return `<tr><td>${esc(r._client_code)}</td><td>${esc(r._symbol)}</td><td>${esc(pick(r,'_normal_mtf','NORMAL/ MTF','NORMAL/MTF','NORMAL_MTF'))}</td><td class="${(r._mtm??0)>=0?'profit':'loss'}">${fmt(r._mtm)}</td><td>${fmt(r._ltp)}</td><td>${fmt(r._quantity)}</td><td>${fmt(r._buy_price)}</td><td>${fmt(r._change)}</td><td><button class="${buttonClass}" onclick="openDeleteModal(${r._excel_row},'${esc(r._symbol)}')"${buttonDisabled}>${buttonLabel}</button></td></tr>`;    }).join('');
-    const s=$('reqLot'),old=s.value;
-    s.innerHTML=d.rows.map(r=>`<option value="${r._excel_row}" data-symbol="${esc(r._symbol)}">Lot ${r._excel_row} — ${esc(r._symbol)} — Qty ${fmt(r._quantity)} — Buy ${fmt(r._buy_price)}</option>`).join('');
-    if([...s.options].some(o=>o.value===old))s.value=old;
+    // Load portfolio independently so one failed request does not hide the portfolio.
+    const d = await api('/api/portfolio');
+
+    requestCache = [];
+
+    try{
+      const rd = await api('/api/requests');
+      requestCache = Array.isArray(rd?.requests) ? rd.requests : [];
+    }catch(_){
+      requestCache = [];
+    }
+
+    $('#mtm').textContent = fmt(d?.mtm_total);
+
+    const realised = $('#realised');
+    if(realised){
+      realised.textContent = fmt(d?.realised_profit_total);
+    }
+
+    const rows = Array.isArray(d?.rows) ? d.rows : [];
+
+    $('#body').innerHTML = rows.map(r => {
+      const client = r?._client_code ?? r?.client_code ?? '';
+      const symbol = r?._symbol ?? r?.symbol ?? '';
+      const normalMtf =
+        r?._normal_mtf ??
+        r?.normal_mtf ??
+        r?.normal_mtf_flag ??
+        'NORMAL/MTF';
+
+      const mtm = r?._mtm ?? r?.mtm ?? null;
+      const ltp = r?._ltp ?? r?.ltp ?? null;
+      const quantity = r?._quantity ?? r?.quantity ?? null;
+      const buyPrice = r?._buy_price ?? r?.buy_price ?? null;
+      const change = r?._change ?? r?.change ?? null;
+      const excelRow = r?._excel_row ?? r?.excel_row ?? '';
+
+      const status = requestStatusFor(excelRow, symbol);
+
+      const adminPending = status === 'PENDING';
+
+      const buttonLabel = adminPending
+        ? 'DELETE REQUEST PENDING : DELETE'
+        : 'DELETE';
+
+      const buttonClass = adminPending
+        ? 'btn gray'
+        : 'btn red';
+
+      const buttonDisabled = adminPending
+        ? 'disabled title="A delete request for this lot is already pending with Admin"'
+        : '';
+
+      return `
+        <tr>
+          <td>${esc(client)}</td>
+          <td>${esc(symbol)}</td>
+          <td>${esc(normalMtf)}</td>
+          <td class="${Number(mtm ?? 0) >= 0 ? 'profit' : 'loss'}">${fmt(mtm)}</td>
+          <td>${fmt(ltp)}</td>
+          <td>${fmt(quantity)}</td>
+          <td>${fmt(buyPrice)}</td>
+          <td>${fmt(change)}</td>
+          <td>
+            <button
+              class="${buttonClass}"
+              ${buttonDisabled}
+              onclick="openDeleteModal(${JSON.stringify(excelRow)},${JSON.stringify(symbol)})"
+            >${buttonLabel}</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Keep the portfolio-lot dropdown synchronized with every row,
+    // including rows whose MTM/LTP is currently blank.
+    const s = $('#reqLot');
+
+    if(s){
+      s.innerHTML = rows.map(r => {
+        const excelRow = r?._excel_row ?? r?.excel_row ?? '';
+        const symbol = r?._symbol ?? r?.symbol ?? '';
+        const quantity = r?._quantity ?? r?.quantity ?? '';
+        const buyPrice = r?._buy_price ?? r?.buy_price ?? '';
+
+        return `
+          <option
+            value="${esc(excelRow)}"
+            data-symbol="${esc(symbol)}"
+          >
+            Lot ${esc(excelRow)} — ${esc(symbol)} — Qty ${fmt(quantity)} — Buy ${fmt(buyPrice)}
+          </option>
+        `;
+      }).join('');
+    }
+
     renderRequests();
-    liveClientCode=d.client_code;updateLiveClock()
+
+    liveClientCode = d?.client_code ?? liveClientCode;
+    updateLiveClock();
+
   }catch(e){
-    if(e.message.includes('Login required'))showLogin();else $('status').textContent='ERROR • '+e.message
+    if(String(e?.message || '').includes('Login required')){
+      showLogin();
+    }else{
+      $('#status').textContent = 'ERROR • ' + (e?.message || e);
+      console.error('loadAll error:', e);
+    }
   }
 }
-async function submitNewLot(sendToAdmin=false){const symbol=$('newSymbol').value.trim().toUpperCase(),quantity=parseFloat($('newQty').value),price=parseFloat($('newLotPrice').value),reason='';$('newLotMsg').textContent='';if(!symbol||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<=0){$('newLotMsg').textContent='Enter Symbol, Quantity and Buy Price.';return}try{await api('/api/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'NEW_LOT',symbol,quantity,new_buy_price:price,reason,admin_approval_required:sendToAdmin})});$('newLotMsg').textContent=sendToAdmin?'Sent to Admin for verification. Status: PENDING.':'New lot added directly to your portfolio.';$('newLotMsg').className='small ok';$('newSymbol').value='';$('newQty').value='';$('newLotPrice').value='';await loadAll()}catch(e){$('newLotMsg').textContent=e.message;$('newLotMsg').className='small error'}}
+ async function submitNewLot(sendToAdmin=false){const symbol=$('newSymbol').value.trim().toUpperCase(),quantity=parseFloat($('newQty').value),price=parseFloat($('newLotPrice').value),reason='';$('newLotMsg').textContent='';if(!symbol||!Number.isFinite(quantity)||quantity<=0||!Number.isFinite(price)||price<=0){$('newLotMsg').textContent='Enter Symbol, Quantity and Buy Price.';return}try{await api('/api/requests',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'NEW_LOT',symbol,quantity,new_buy_price:price,reason,admin_approval_required:sendToAdmin})});$('newLotMsg').textContent=sendToAdmin?'Sent to Admin for verification. Status: PENDING.':'New lot added directly to your portfolio.';$('newLotMsg').className='small ok';$('newSymbol').value='';$('newQty').value='';$('newLotPrice').value='';await loadAll()}catch(e){$('newLotMsg').textContent=e.message;$('newLotMsg').className='small error'}}
 let deleteLot=null;
 let deleteSymbol='';
 
