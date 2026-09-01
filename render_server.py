@@ -145,7 +145,7 @@ def row_to_api(r):
     data["_change"] = r["change_value"]
 
     data["_normal_mtf"] = (
-        data.get("NORMAL / MTF")
+        data.get("NORMAL/ MTF")
         or data.get("NORMAL/MTF")
         or data.get("NORMAL_MTF")
     )
