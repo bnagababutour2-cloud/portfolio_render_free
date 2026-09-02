@@ -36,8 +36,7 @@ ADMIN_ACCOUNTS = {
     ADMIN_USER: {"password": ADMIN_PASSWORD, "prefixes": None, "label": "Full Admin"},
     "1312": {"password": os.getenv("PORTFOLIO_1312_PASSWORD", "1312"), "prefixes": ("1312",), "label": "1312 Supervisor"},
     "1313": {"password": os.getenv("PORTFOLIO_1313_PASSWORD", "1313"), "prefixes": ("1313", "1314"), "label": "1313/1314 Supervisor"},
-    "1304": {"password": os.getenv("PORTFOLIO_1304_PASSWORD", "1304"), "prefixes": ("1304",), "clients": ("13010002", "130100030"), "label": "1304 Supervisor",
-}
+    "1304": {"password": os.getenv("PORTFOLIO_1304_PASSWORD", "1304"), "prefixes": ("1304",), "clients": ("13010002", "130100030"), "label": "1304 Supervisor"},
 
 app = FastAPI(title="Client Portfolio Portal", version="4.0-render")
 
