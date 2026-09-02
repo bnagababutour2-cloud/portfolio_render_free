@@ -143,11 +143,8 @@ def row_to_api(r):
     data["_buy_price"] = r["buy_price"]
     data["_realised_profit"] = r["realised_profit"]
     data["_change"] = r["change_value"]
-
-    data["_normal_mtf"] = (
-        data.get("NORMAL/ MTF")
-        or data.get("NORMAL/MTF")
-        or data.get("NORMAL_MTF")
+    data["_NORMAL/ MTF"] = r["NORMAL/ MTF"]
+        
     )
 
     data["_portfolio_id"] = (
